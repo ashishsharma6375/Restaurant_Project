@@ -1,48 +1,37 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { dbConnection } from './database/dbconnection.js';
-import { errorMiddleware } from './Error/error.js';
-import reservationRouter from './routes/reservationRoute.js';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { dbConnection } from "./database/dbconnection.js";
+import { errorMiddleware } from "./Error/error.js";
+import reservationRouter from "./routes/reservationRoute.js";
 
 const app = express();
 
-dotenv.config({ path: './config/config.env' });
+dotenv.config({ path: "./config/config.env" });
 
-// DB connection
 dbConnection();
 
-// ✅ ALLOWED FRONTEND ORIGINS
-const allowedOrigins = [
-  "https://restaurant-project-gold-kappa.vercel.app",
-  "https://restaurant-project-h7xtieemc-ashish-sharmas-projects-baf65a06.vercel.app"
-];
-
-// ✅ CORS FIX
+// ✅ SIMPLE & SAFE CORS (FIXES PREFLIGHT)
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow server-to-server / Postman
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error("CORS not allowed"), false);
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: true,            // reflect request origin
   credentials: true
 }));
 
-app.options("*", cors());
+// ✅ THIS LINE FIXES OPTIONS ISSUE
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
-// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/api/v1/reservation', reservationRouter);
+app.use("/api/v1/reservation", reservationRouter);
 
-// Error middleware
 app.use(errorMiddleware);
 
 export default app;
